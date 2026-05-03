@@ -1,0 +1,81 @@
+name: Codex Documentation Generation
+
+on:
+  workflow_dispatch:
+    inputs:
+      documentation_goal:
+        description: Documentation to create or update.
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  codex-doc-generation:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+      BRANCH_NAME: codex/docs-${{ github.run_id }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create Codex branch
+        run: git switch -c "$BRANCH_NAME"
+
+      - name: Validate Codex authentication
+        run: |
+          if [ -z "${OPENAI_API_KEY:-}" ] && [ -z "${CODEX_API_KEY:-}" ]; then
+            echo "Set OPENAI_API_KEY or CODEX_API_KEY as a repository or organization secret."
+            exit 1
+          fi
+
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+
+      - name: Run Codex documentation generation
+        env:
+          DOCUMENTATION_GOAL: ${{ inputs.documentation_goal }}
+        run: |
+          {
+            printf '# Codex Documentation Generation Prompt\n\n'
+            printf 'Create or update documentation for the requested goal. Follow codex/AGENTS.md. Do not deploy. Do not hardcode secrets. Keep changes small and reviewable.\n'
+            printf '\n\n## Engineering Standards\n'
+            cat codex/AGENTS.md
+            printf '\n\n## Documentation Goal\n%s\n' "$DOCUMENTATION_GOAL"
+          } | codex exec --cd "$GITHUB_WORKSPACE" --sandbox workspace-write --output-last-message codex-doc-generation-result.md -
+
+      - name: Commit Codex output
+        id: commit
+        run: |
+          git status --short
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+          else
+            git add .
+            git commit -m "Generate documentation with Codex"
+            git push origin "$BRANCH_NAME"
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open draft pull request
+        if: steps.commit.outputs.changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --draft \
+            --base "${{ github.ref_name }}" \
+            --head "$BRANCH_NAME" \
+            --title "Codex documentation generation" \
+            --body-file codex-doc-generation-result.md

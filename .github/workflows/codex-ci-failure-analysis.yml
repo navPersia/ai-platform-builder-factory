@@ -1,0 +1,80 @@
+name: Codex CI Failure Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      failure_context:
+        description: CI failure logs, check URL, or failure summary for Codex.
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  codex-ci-failure-analysis:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+      BRANCH_NAME: codex/ci-failure-${{ github.run_id }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create Codex branch
+        run: git switch -c "$BRANCH_NAME"
+
+      - name: Validate Codex authentication
+        run: |
+          if [ -z "${OPENAI_API_KEY:-}" ] && [ -z "${CODEX_API_KEY:-}" ]; then
+            echo "Set OPENAI_API_KEY or CODEX_API_KEY as a repository or organization secret."
+            exit 1
+          fi
+
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+
+      - name: Run Codex CI failure analysis
+        env:
+          FAILURE_CONTEXT: ${{ inputs.failure_context }}
+        run: |
+          {
+            cat codex/prompts/fix-ci.md
+            printf '\n\n## Engineering Standards\n'
+            cat codex/AGENTS.md
+            printf '\n\n## CI Failure Context\n%s\n' "$FAILURE_CONTEXT"
+          } | codex exec --cd "$GITHUB_WORKSPACE" --sandbox workspace-write --output-last-message codex-ci-failure-result.md -
+
+      - name: Commit Codex output
+        id: commit
+        run: |
+          git status --short
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+          else
+            git add .
+            git commit -m "Analyze CI failure with Codex"
+            git push origin "$BRANCH_NAME"
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open draft pull request
+        if: steps.commit.outputs.changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --draft \
+            --base "${{ github.ref_name }}" \
+            --head "$BRANCH_NAME" \
+            --title "Codex CI failure analysis" \
+            --body-file codex-ci-failure-result.md

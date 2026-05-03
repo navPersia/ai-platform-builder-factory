@@ -1,0 +1,69 @@
+version: 1
+workflows:
+  project_bootstrap:
+    description: Create or update an Azure AI agent project from requirements.
+    actor: OpenClaw
+    steps:
+      - collect_project_requirements
+      - create_structured_implementation_brief
+      - send_brief_to_codex
+      - codex_generates_repository_files
+      - codex_returns_changed_file_summary
+      - openclaw_reviews_output_against_standards
+    codex_prompt: .claw/prompts/project-bootstrap.md
+    expected_outputs:
+      - specs
+      - configs
+      - Python service code
+      - Bicep infrastructure
+      - GitHub Actions
+      - documentation
+      - tests for generated Python code
+
+  design_to_code:
+    description: Convert a feature idea into a design proposal, implementation plan, and branch or patch.
+    actor: OpenClaw
+    steps:
+      - create_design_proposal
+      - create_implementation_plan
+      - send_plan_to_codex
+      - codex_implements_code_changes
+      - github_actions_validates_result
+      - openclaw_summarizes_result_and_next_steps
+    codex_prompt: .claw/prompts/feature-design.md
+    constraints:
+      - Codex must not deploy directly.
+      - Codex must work on a branch or produce a patch.
+      - OpenClaw validates output before accepting it.
+
+  repo_analysis:
+    description: Ask Codex to inspect the repository and produce actionable analysis.
+    actor: OpenClaw
+    allowed_tasks:
+      - explain architecture
+      - detect missing files
+      - check consistency between specs, configs, and code
+      - suggest improvements
+      - generate TODO lists
+      - prepare PR descriptions
+    codex_prompt: .claw/prompts/codex-review.md
+    constraints:
+      - Prefer read-only analysis unless the task explicitly requests edits.
+      - Do not deploy.
+
+  codex_output_review:
+    description: Validate Codex output before OpenClaw accepts it.
+    actor: OpenClaw
+    steps:
+      - inspect_changed_files
+      - compare_against_specs_and_configs
+      - verify_no_hardcoded_secrets
+      - verify_tests_or_test_gap_explanation
+      - verify_no_deployment_attempt
+      - summarize_findings
+    codex_prompt: .claw/prompts/codex-review.md
+    acceptance:
+      - changes are small and reviewable
+      - assumptions are explicit
+      - validation evidence is included
+      - deployment is left to approved Azure workflows

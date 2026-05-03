@@ -1,0 +1,59 @@
+version: 1
+name: openclaw-codex-automation
+description: OpenClaw orchestrates Azure AI agent projects while Codex performs repository edits as a coding worker.
+
+roles:
+  orchestrator:
+    name: OpenClaw
+    responsibilities:
+      - collect project requirements
+      - create design proposals and implementation briefs
+      - route repository tasks to Codex
+      - validate Codex output against platform standards
+      - summarize results and next steps
+  worker:
+    name: Codex
+    invocation: codex exec
+    responsibilities:
+      - inspect repositories
+      - generate and update code
+      - create specs, configs, Bicep, CI/CD, tests, and docs
+      - return changed-file summaries and assumptions
+      - prepare patches or pull requests
+
+sources_of_truth:
+  code: GitHub
+  validation: GitHub Actions
+  platform_rules: specs/
+  project_values: configs/
+
+runtime_defaults:
+  cloud: Azure
+  compute: Azure Container Apps
+  infrastructure_as_code: Bicep
+  secrets: Azure Key Vault
+  identity: Managed Identity
+  observability: Log Analytics
+  ci_cd: GitHub Actions
+
+safety_rules:
+  codex_may_edit_files: true
+  codex_may_deploy: false
+  deployment_requires_explicit_approval: true
+  branch_or_patch_required: true
+  direct_main_branch_changes: false
+  hardcoded_secrets: false
+  prefer_small_reviewable_changes: true
+  tests_required_for_python_code: true
+  explain_important_assumptions: true
+  respect_specs_as_rules: true
+  respect_configs_as_values: true
+  do_not_overwrite_standards_without_explanation: true
+
+review_gates:
+  - OpenClaw confirms the requested workflow was followed.
+  - OpenClaw checks changed files against specs/ and configs/.
+  - OpenClaw confirms no deployment was attempted.
+  - OpenClaw confirms secrets are referenced through configuration, Key Vault, or GitHub secrets.
+  - OpenClaw confirms generated Python code includes tests or a clear test gap.
+  - OpenClaw summarizes risks, assumptions, validation results, and next steps.

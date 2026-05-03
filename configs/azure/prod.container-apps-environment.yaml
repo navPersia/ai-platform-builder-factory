@@ -1,0 +1,71 @@
+version: 1
+environment: prod
+cloud: Azure
+location: westeurope
+
+subscription:
+  id: 954c05d0-124c-4b20-959d-ac336aa0fde9
+  tenantId: 954f3ec5-5ada-4832-ad65-34b54881067b
+
+resourceGroup:
+  name: rg-arca-prod
+
+containerAppsEnvironment:
+  apiVersion: 2025-10-02-preview
+  name: aca-arca-prod-env
+  resourceId: /subscriptions/954c05d0-124c-4b20-959d-ac336aa0fde9/resourceGroups/rg-arca-prod/providers/Microsoft.App/managedEnvironments/aca-arca-prod-env
+  type: Microsoft.App/managedEnvironments
+  provisioningState: Succeeded
+  environmentMode: WorkloadProfiles
+  defaultDomain: salmoncliff-ac0e8a07.westeurope.azurecontainerapps.io
+  staticIp: 51.137.13.148
+  publicNetworkAccess: Enabled
+  zoneRedundant: false
+  vnetConfigured: false
+
+  tags:
+    environment: prod
+    platform: aca
+    workload: application-services
+    costProfile: minimal
+
+  identity:
+    type: SystemAssigned
+    principalId: d0e583f0-bccb-4e8b-8fa5-d30a6ed6e12d
+
+  logging:
+    destination: log-analytics
+    logAnalytics:
+      customerId: 3be6d865-4fb6-47ef-8c77-ac184f20e3a4
+      dynamicJsonColumns: false
+
+  workloadProfiles:
+    - name: Consumption
+      workloadProfileType: Consumption
+      enableFips: false
+
+  platformVersions:
+    keda: 2.17.2
+    dapr: 1.16.4-msft.2
+
+  peerAuthentication:
+    mtlsEnabled: false
+
+  peerTrafficConfiguration:
+    encryptionEnabled: false
+
+  customDomain:
+    verificationId: 4084B43EEECA2D1A7CEDCF034DA0129C7B825B66787C1C1391607A4253B12F5C
+    dnsSuffix: null
+    certificateFromKeyVault: false
+
+secretHandling:
+  logAnalyticsSharedKey: store in GitHub Actions secrets or Azure Key Vault; do not commit
+  certificateValue: store in Azure Key Vault; do not commit
+  certificatePassword: store in Azure Key Vault; do not commit
+  applicationSecrets: use Managed Identity and Azure Key Vault
+
+notes:
+  - This file captures the existing production Azure Container Apps managed environment as project configuration.
+  - Codex should read this file before generating Bicep, deployment docs, or Container Apps service configuration.
+  - Codex must not deploy to this environment unless explicitly approved.
