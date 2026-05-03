@@ -6,4 +6,4 @@ These files are not secrets stores. Do not commit passwords, tokens, connection 
 
 ## Current Environments
 
-- `azure/prod.container-apps-environment.yaml`: existing production Azure Container Apps managed environment in West Europe.
+- `azure/prod.container-apps-environment.yaml`: existing production Azure Container Apps, Service Bus, Log Analytics, and Azure Container Registry resources in West Europe.

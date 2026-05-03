@@ -4,6 +4,7 @@ Codex acts as the code-generation and repository-editing worker for OpenClaw. Op
 
 ## Platform Defaults
 - Azure Container Apps is the default runtime target.
+- Use Azure Service Bus for async messaging when required.
 - Use Bicep for Azure infrastructure as code.
 - Use GitHub Actions for CI/CD validation and automation.
 - Always enable Log Analytics for Azure runtime observability.
@@ -14,6 +15,7 @@ Codex acts as the code-generation and repository-editing worker for OpenClaw. Op
 ## Repository Rules
 - Treat `specs/` as platform rules.
 - Treat `configs/` as project-specific values.
+- Read `specs/platform.md` and `specs/resource-groups.md` before generating infrastructure, CI/CD, or deployment documentation.
 - Do not overwrite existing standards without explaining why.
 - Prefer production-grade structure over throwaway scaffolding.
 - Prefer small, reviewable changes.

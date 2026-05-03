@@ -10,6 +10,20 @@ subscription:
 resourceGroup:
   name: rg-arca-prod
 
+resourceGroupStrategy:
+  required:
+    ai: arca-rg-ai-prod-weu
+    network: arca-rg-network-prod-weu
+  conditional:
+    data: arca-rg-data-prod-weu
+    workload: arca-rg-workload-prod-weu
+  currentSharedResourceGroup: rg-arca-prod
+  notes:
+    - New projects must use rg-ai and rg-network resource group roles.
+    - Add rg-data when the project owns persistent data resources.
+    - Add rg-workload when runtime workload resources need isolation.
+    - Existing resources are currently in rg-arca-prod; treat migration as a separate approved change.
+
 containerAppsEnvironment:
   apiVersion: 2025-10-02-preview
   name: aca-arca-prod-env
@@ -59,6 +73,93 @@ containerAppsEnvironment:
     dnsSuffix: null
     certificateFromKeyVault: false
 
+serviceBusNamespace:
+  apiVersion: 2025-05-01-preview
+  name: sbarca-prod-weu
+  resourceId: /subscriptions/954c05d0-124c-4b20-959d-ac336aa0fde9/resourceGroups/rg-arca-prod/providers/Microsoft.ServiceBus/namespaces/sbarca-prod-weu
+  type: Microsoft.ServiceBus/namespaces
+  sku:
+    name: Basic
+    tier: Basic
+  location: westeurope
+  provisioningState: Succeeded
+  status: Active
+  endpoint: https://sbarca-prod-weu.servicebus.windows.net:443/
+  minimumTlsVersion: "1.2"
+  publicNetworkAccess: Enabled
+  disableLocalAuth: true
+  zoneRedundant: true
+  confidentialCompute: Disabled
+  geoDataReplication:
+    maxReplicationLagDurationInSeconds: 0
+    locations:
+      - locationName: westeurope
+        roleType: Primary
+        replicaState: Ready
+  tags:
+    environment: prod
+    platform: aca
+    workload: application-services
+    costProfile: minimal
+
+logAnalyticsWorkspace:
+  name: log-aca-arca-prod-weu
+  resourceId: /subscriptions/954c05d0-124c-4b20-959d-ac336aa0fde9/resourceGroups/rg-arca-prod/providers/Microsoft.OperationalInsights/workspaces/log-aca-arca-prod-weu
+  type: Microsoft.OperationalInsights/workspaces
+  location: westeurope
+  customerId: 3be6d865-4fb6-47ef-8c77-ac184f20e3a4
+  provisioningState: Succeeded
+  sku:
+    name: PerGB2018
+  retentionInDays: 30
+  enableLogAccessUsingOnlyResourcePermissions: true
+  publicNetworkAccessForIngestion: Enabled
+  publicNetworkAccessForQuery: Enabled
+  workspaceCapping:
+    dailyQuotaGb: -1
+    dataIngestionStatus: RespectQuota
+  tags:
+    environment: prod
+    platform: aca
+    workload: application-services
+    costProfile: minimal
+
+containerRegistry:
+  apiVersion: 2026-01-01-preview
+  name: arcaprodweuacr
+  resourceId: /subscriptions/954c05d0-124c-4b20-959d-ac336aa0fde9/resourceGroups/rg-arca-prod/providers/Microsoft.ContainerRegistry/registries/arcaprodweuacr
+  type: Microsoft.ContainerRegistry/registries
+  location: westeurope
+  loginServer: arcaprodweuacr.azurecr.io
+  sku:
+    name: Basic
+    tier: Basic
+  provisioningState: Succeeded
+  adminUserEnabled: true
+  publicNetworkAccess: Enabled
+  networkRuleBypassOptions: AzureServices
+  anonymousPullEnabled: false
+  dataEndpointEnabled: false
+  zoneRedundancy: Disabled
+  policies:
+    quarantinePolicy: disabled
+    trustPolicy: disabled
+    retentionPolicy: disabled
+    exportPolicy: enabled
+    azureADAuthenticationAsArmPolicy: disabled
+    softDeletePolicy: disabled
+  tags:
+    environment: prod
+    platform: aca
+    workload: application-services
+    costProfile: minimal
+
+complianceNotes:
+  - Existing tags do not include required owner and createdBy values from specs/resource-groups.md.
+  - Existing public network access is enabled on Container Apps, Service Bus, Log Analytics, and ACR; future changes should justify public exposure or move toward private access.
+  - ACR admin user is enabled; future remediation should prefer Managed Identity and disable admin credentials.
+  - Existing shared resource group rg-arca-prod does not follow the new rg-ai and rg-network split; migration requires explicit approval.
+
 secretHandling:
   logAnalyticsSharedKey: store in GitHub Actions secrets or Azure Key Vault; do not commit
   certificateValue: store in Azure Key Vault; do not commit
@@ -67,5 +168,6 @@ secretHandling:
 
 notes:
   - This file captures the existing production Azure Container Apps managed environment as project configuration.
-  - Codex should read this file before generating Bicep, deployment docs, or Container Apps service configuration.
+  - It also captures existing production Service Bus, Log Analytics, and Azure Container Registry resources.
+  - Codex should read this file before generating Bicep, deployment docs, or Azure service configuration.
   - Codex must not deploy to this environment unless explicitly approved.

@@ -49,9 +49,16 @@ The workflows under `.github/workflows/` are manual `workflow_dispatch` automati
 
 ## Production ACA Environment
 
-The existing production Azure Container Apps managed environment is captured in `configs/azure/prod.container-apps-environment.yaml`.
+The existing production Azure platform resources are captured in `configs/azure/prod.container-apps-environment.yaml`.
 
-Codex and OpenClaw should treat that file as project-specific configuration for West Europe production work. Sensitive values such as Log Analytics shared keys, certificate values, passwords, and application secrets must stay in Azure Key Vault or GitHub Actions secrets.
+Codex and OpenClaw should treat that file as project-specific configuration for West Europe production work. It includes the current Azure Container Apps environment, Service Bus namespace, Log Analytics workspace, and Azure Container Registry. Sensitive values such as Log Analytics shared keys, certificate values, passwords, and application secrets must stay in Azure Key Vault or GitHub Actions secrets.
+
+## Platform Specs
+
+StudioStreamX platform rules live under `specs/`:
+
+- `specs/platform.md`: Azure-native, config-driven, secure-by-default platform rules.
+- `specs/resource-groups.md`: resource group roles, naming convention, required tags, and compliance expectations.
 
 ## OpenClaw Calling Pattern
 
